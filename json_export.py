@@ -14,11 +14,26 @@ def obtener_datos(url_base, endpoint, usuario, contrasena):
     try:
         # Autenticación básica
         auth = HTTPBasicAuth(usuario, contrasena)
-        response = requests.get(url, auth=auth)
+        
+        # Agregar cabeceras adicionales para evitar posibles bloqueos
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+        
+        # Realizar la solicitud
+        response = requests.get(url, auth=auth, headers=headers)
+        
+        # Verificar que la respuesta sea exitosa
         response.raise_for_status()  # Lanza un error si el código de estado no es 200
+        
         return response.json()
+
     except requests.exceptions.RequestException as e:
+        # Mostrar el error completo para ayudar en la depuración
         st.error(f"Error al obtener datos del endpoint {endpoint}: {e}")
+        st.write("Detalles de la respuesta:")
+        st.write(response.text)  # Muestra el mensaje completo de error
         return None
 
 # Título de la aplicación en Streamlit
