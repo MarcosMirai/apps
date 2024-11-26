@@ -90,5 +90,5 @@ def fetch_file_content(raw_url):
         return None
 
 # Uncomment to run in a Streamlit environment
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
