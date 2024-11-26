@@ -6,6 +6,8 @@ def obtener_datos(url_base, endpoint):
     """
     Función para obtener datos de un endpoint específico en la API REST.
     """
+    # Asegúrate de que la URL no tenga slash final
+    url_base = url_base.rstrip("/")  # Elimina el slash al final si existe
     url = f"{url_base}/wp-json/wp/v2/{endpoint}"
     try:
         response = requests.get(url)
