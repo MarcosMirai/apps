@@ -1,4 +1,4 @@
-# Archivo: contEmployees.py
+# Archivo: app.py
 import streamlit as st
 from collections import defaultdict
 
@@ -19,8 +19,22 @@ def process_files(uploaded_files):
 
 def main():
     st.title("Calculador de Días por Empleado")
-    st.write("Sube tus archivos de texto con el formato adecuado para calcular el total de días por empleado.")
-    
+
+    # Instrucción para descargar y usar el archivo JavaScript
+    st.markdown(
+        """
+        ### Primer Paso: Descargar y Ejecutar el Script
+        Para comenzar, descarga el siguiente archivo JavaScript y ejecútalo en la consola de tu navegador para exportar los datos:
+        - [Descargar Script JS](https://github.com/MarcosMirai/apps/blob/main/daysFactorial.js)
+
+        **Instrucciones:**
+        1. Abre la consola de tu navegador (F12 o clic derecho -> Inspeccionar -> Consola).
+        2. Copia y pega el contenido del script descargado.
+        3. Ejecútalo para obtener los datos necesarios.
+        4. Guarda el resultado en un archivo `.txt` y súbelo aquí.
+        """
+    )
+
     # Subir múltiples archivos
     uploaded_files = st.file_uploader("Sube tus archivos aquí", type=["txt"], accept_multiple_files=True)
     
