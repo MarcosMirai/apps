@@ -35,30 +35,14 @@ def main():
         """
     )
 
-    # Inicializar el estado si no existe
-    if "uploaded_files" not in st.session_state:
-        st.session_state.uploaded_files = None
-        st.session_state.show_results = False
-
-    # Botón para reiniciar la aplicación
-    if st.button("Reiniciar"):
-        st.session_state.uploaded_files = None
-        st.session_state.show_results = False
-        st.experimental_set_query_params()  # Simula un cambio para refrescar la página
-
     # Subir múltiples archivos
     uploaded_files = st.file_uploader("Sube tus archivos aquí", type=["txt"], accept_multiple_files=True)
 
     if uploaded_files:
-        st.session_state.uploaded_files = uploaded_files
-        st.session_state.show_results = True
-
-    # Procesar los archivos si ya están cargados
-    if st.session_state.show_results and st.session_state.uploaded_files:
         st.write("Archivos cargados correctamente. Procesando...")
         
         # Procesar archivos
-        totals = process_files(st.session_state.uploaded_files)
+        totals = process_files(uploaded_files)
         
         # Mostrar resultados en la interfaz
         st.write("### Resultados:")
@@ -72,6 +56,17 @@ def main():
             data=result_text,
             file_name="totales_empleados.txt",
             mime="text/plain"
+        )
+
+        # Botón para recargar la página
+        st.markdown(
+            """
+            <br><br>
+            <button onclick="window.location.reload();" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+                Reiniciar Página
+            </button>
+            """,
+            unsafe_allow_html=True
         )
 
 if __name__ == "__main__":
