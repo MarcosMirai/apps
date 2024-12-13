@@ -1,16 +1,7 @@
 # Archivo: app.py
 import streamlit as st
-import subprocess
-import sys
+import matplotlib.pyplot as plt
 from collections import defaultdict
-
-# Verificar si matplotlib está instalado y, si no, instalarlo
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    st.warning("Matplotlib no está instalado. Instalando ahora...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
-    import matplotlib.pyplot as plt
 
 def process_files(uploaded_files):
     """Procesar los archivos cargados y calcular los totales."""
@@ -35,10 +26,16 @@ def plot_results(employee_totals):
     
     # Crear el gráfico de barras
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.barh(names, days, color='skyblue')
+    bars = ax.barh(names, days, color='skyblue')
     ax.set_xlabel('Días')
     ax.set_title('Total de Días por Empleado')
     plt.gca().invert_yaxis()  # Invertir el eje Y para mostrar el empleado con más días arriba
+    
+    # Añadir los números de días sobre las barras
+    for bar, day in zip(bars, days):
+        ax.text(bar.get_width() - 0.5, bar.get_y() + bar.get_height() / 2, f'{day}', 
+                va='center', ha='right', color='black', fontweight='bold')
+    
     st.pyplot(fig)
 
 def main():
@@ -71,14 +68,6 @@ def main():
         # Ordenar los resultados de mayor a menor
         sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
         
-        # Mostrar resultados en la interfaz
-        st.write("### Resultados:")
-        for name, days in sorted_totals:
-            st.write(f"{name}: {days} días")
-        
-        # Mostrar gráfico de barras
-        plot_results(totals)
-        
         # Generar archivo de salida
         result_text = "\n".join(f"{name}: {days} días" for name, days in sorted_totals)
         st.download_button(
@@ -87,6 +76,9 @@ def main():
             file_name="totales_empleados.txt",
             mime="text/plain"
         )
+
+        # Mostrar solo el gráfico de barras
+        plot_results(totals)
 
 if __name__ == "__main__":
     main()
