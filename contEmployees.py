@@ -68,9 +68,9 @@ def main():
         
         # Mostrar botón de reinicio
         if st.button("Reiniciar"):
-            # Eliminar el estado de los archivos cargados
+            # Eliminar el estado de los archivos cargados y recargar la página
             st.session_state.uploaded_files = None
-            st.experimental_set_query_params(dummy="refresh")  # Simula un cambio de estado
+            st.experimental_rerun()  # Refresca la aplicación completamente
 
 if __name__ == "__main__":
     main()
