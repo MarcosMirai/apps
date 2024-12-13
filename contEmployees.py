@@ -1,4 +1,4 @@
-# Archivo: contEmployees.py
+# Archivo: app.py
 import streamlit as st
 from collections import defaultdict
 
@@ -35,14 +35,23 @@ def main():
         """
     )
 
+    # Estado inicial
+    if "uploaded_files" not in st.session_state:
+        st.session_state.uploaded_files = None
+
     # Subir múltiples archivos
     uploaded_files = st.file_uploader("Sube tus archivos aquí", type=["txt"], accept_multiple_files=True)
-    
+
+    # Guardar los archivos cargados en el estado
     if uploaded_files:
+        st.session_state.uploaded_files = uploaded_files
+
+    # Procesar los archivos si ya están cargados
+    if st.session_state.uploaded_files:
         st.write("Archivos cargados correctamente. Procesando...")
         
         # Procesar archivos
-        totals = process_files(uploaded_files)
+        totals = process_files(st.session_state.uploaded_files)
         
         # Mostrar resultados en la interfaz
         st.write("### Resultados:")
@@ -57,6 +66,11 @@ def main():
             file_name="totales_empleados.txt",
             mime="text/plain"
         )
+        
+        # Botón para reiniciar el proceso
+        if st.button("Reiniciar"):
+            st.session_state.uploaded_files = None
+            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
