@@ -35,15 +35,22 @@ def main():
         """
     )
 
+    # Inicializar el estado si no existe
+    if "uploaded_files" not in st.session_state:
+        st.session_state.uploaded_files = None
+
     # Subir múltiples archivos
     uploaded_files = st.file_uploader("Sube tus archivos aquí", type=["txt"], accept_multiple_files=True)
 
-    # Procesar los archivos si ya están cargados
     if uploaded_files:
+        st.session_state.uploaded_files = uploaded_files
+
+    # Procesar los archivos si ya están cargados
+    if st.session_state.uploaded_files:
         st.write("Archivos cargados correctamente. Procesando...")
         
         # Procesar archivos
-        totals = process_files(uploaded_files)
+        totals = process_files(st.session_state.uploaded_files)
         
         # Mostrar resultados en la interfaz
         st.write("### Resultados:")
@@ -59,9 +66,11 @@ def main():
             mime="text/plain"
         )
         
-        # Mostrar botón de reinicio después de generar resultados
+        # Mostrar botón de reinicio
         if st.button("Reiniciar"):
-            st.experimental_rerun()  # Refresca la app reiniciando todo
+            # Eliminar el estado de los archivos cargados
+            st.session_state.uploaded_files = None
+            st.experimental_set_query_params(dummy="refresh")  # Simula un cambio de estado
 
 if __name__ == "__main__":
     main()
