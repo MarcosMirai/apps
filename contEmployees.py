@@ -58,10 +58,5 @@ def main():
             mime="text/plain"
         )
 
-        # Botón para reiniciar la aplicación
-        if st.button("Reiniciar"):
-            # Recargar la página mediante `st.experimental_rerun()`
-            st.experimental_rerun()
-
 if __name__ == "__main__":
     main()
