@@ -17,11 +17,6 @@ def process_files(uploaded_files):
                 
     return employee_totals
 
-def reset_app():
-    """Restablecer la aplicación."""
-    st.session_state.uploaded_files = None
-    st.session_state.show_results = False
-
 def main():
     st.title("Calculador de Días por Empleado")
 
@@ -45,6 +40,12 @@ def main():
         st.session_state.uploaded_files = None
         st.session_state.show_results = False
 
+    # Botón para reiniciar la aplicación
+    if st.button("Reiniciar"):
+        st.session_state.uploaded_files = None
+        st.session_state.show_results = False
+        st.experimental_set_query_params()  # Simula un cambio para refrescar la página
+
     # Subir múltiples archivos
     uploaded_files = st.file_uploader("Sube tus archivos aquí", type=["txt"], accept_multiple_files=True)
 
@@ -52,7 +53,7 @@ def main():
         st.session_state.uploaded_files = uploaded_files
         st.session_state.show_results = True
 
-    # Mostrar resultados si están habilitados
+    # Procesar los archivos si ya están cargados
     if st.session_state.show_results and st.session_state.uploaded_files:
         st.write("Archivos cargados correctamente. Procesando...")
         
@@ -72,10 +73,6 @@ def main():
             file_name="totales_empleados.txt",
             mime="text/plain"
         )
-        
-        # Botón para reiniciar la aplicación
-        if st.button("Reiniciar"):
-            reset_app()
 
 if __name__ == "__main__":
     main()
