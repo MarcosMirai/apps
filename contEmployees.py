@@ -58,16 +58,10 @@ def main():
             mime="text/plain"
         )
 
-        # Botón para recargar la página
-        st.markdown(
-            """
-            <br><br>
-            <button onclick="window.location.reload();" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
-                Reiniciar Página
-            </button>
-            """,
-            unsafe_allow_html=True
-        )
+        # Botón para reiniciar la aplicación
+        if st.button("Reiniciar"):
+            # Recargar la página mediante `st.experimental_rerun()`
+            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
