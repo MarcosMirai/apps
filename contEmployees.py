@@ -61,7 +61,7 @@ def main():
         
         # Mostrar botón de reinicio después de generar resultados
         if st.button("Reiniciar"):
-            st.experimental_set_query_params()  # Refresca la app eliminando los parámetros actuales
+            st.experimental_rerun()  # Refresca la app reiniciando todo
 
 if __name__ == "__main__":
     main()
