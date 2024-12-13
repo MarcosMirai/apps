@@ -1,6 +1,16 @@
 # Archivo: app.py
 import streamlit as st
+import subprocess
+import sys
 from collections import defaultdict
+
+# Verificar si matplotlib está instalado y, si no, instalarlo
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    st.warning("Matplotlib no está instalado. Instalando ahora...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "matplotlib"])
+    import matplotlib.pyplot as plt
 
 def process_files(uploaded_files):
     """Procesar los archivos cargados y calcular los totales."""
@@ -16,6 +26,20 @@ def process_files(uploaded_files):
                 employee_totals[name.strip()] += days
                 
     return employee_totals
+
+def plot_results(employee_totals):
+    """Mostrar un gráfico de barras de los resultados."""
+    # Ordenar los empleados por número de días (de mayor a menor)
+    sorted_totals = sorted(employee_totals.items(), key=lambda x: x[1], reverse=True)
+    names, days = zip(*sorted_totals)
+    
+    # Crear el gráfico de barras
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.barh(names, days, color='skyblue')
+    ax.set_xlabel('Días')
+    ax.set_title('Total de Días por Empleado')
+    plt.gca().invert_yaxis()  # Invertir el eje Y para mostrar el empleado con más días arriba
+    st.pyplot(fig)
 
 def main():
     st.title("Calculador de Días por Empleado")
@@ -44,13 +68,19 @@ def main():
         # Procesar archivos
         totals = process_files(uploaded_files)
         
+        # Ordenar los resultados de mayor a menor
+        sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+        
         # Mostrar resultados en la interfaz
         st.write("### Resultados:")
-        for name, days in totals.items():
+        for name, days in sorted_totals:
             st.write(f"{name}: {days} días")
         
+        # Mostrar gráfico de barras
+        plot_results(totals)
+        
         # Generar archivo de salida
-        result_text = "\n".join(f"{name}: {days} días" for name, days in totals.items())
+        result_text = "\n".join(f"{name}: {days} días" for name, days in sorted_totals)
         st.download_button(
             label="Descargar resultados",
             data=result_text,
