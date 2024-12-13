@@ -35,23 +35,15 @@ def main():
         """
     )
 
-    # Botón para reiniciar el estado
-    if st.button("Reiniciar"):
-        st.session_state.uploaded_files = None
-
     # Subir múltiples archivos
     uploaded_files = st.file_uploader("Sube tus archivos aquí", type=["txt"], accept_multiple_files=True)
 
-    # Manejo de estado para reiniciar
-    if uploaded_files:
-        st.session_state.uploaded_files = uploaded_files
-
     # Procesar los archivos si ya están cargados
-    if "uploaded_files" in st.session_state and st.session_state.uploaded_files:
+    if uploaded_files:
         st.write("Archivos cargados correctamente. Procesando...")
         
         # Procesar archivos
-        totals = process_files(st.session_state.uploaded_files)
+        totals = process_files(uploaded_files)
         
         # Mostrar resultados en la interfaz
         st.write("### Resultados:")
@@ -66,6 +58,10 @@ def main():
             file_name="totales_empleados.txt",
             mime="text/plain"
         )
+        
+        # Mostrar botón de reinicio después de generar resultados
+        if st.button("Reiniciar"):
+            st.experimental_set_query_params()  # Refresca la app eliminando los parámetros actuales
 
 if __name__ == "__main__":
     main()
