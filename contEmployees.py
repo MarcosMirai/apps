@@ -19,7 +19,7 @@ def process_files(uploaded_files):
     return employee_totals
 
 def plot_results(employee_totals):
-    """Mostrar un gráfico de barras de los resultados con espaciado dinámico."""
+    """Mostrar un gráfico de barras de los resultados con márgenes optimizados."""
     # Ordenar los empleados por número de días (de mayor a menor)
     sorted_totals = sorted(employee_totals.items(), key=lambda x: x[1], reverse=True)
     names, days = zip(*sorted_totals)
@@ -34,6 +34,9 @@ def plot_results(employee_totals):
     ax.set_xlabel('Días')
     ax.set_title('Total de Días por Empleado')
     plt.gca().invert_yaxis()  # Invertir el eje Y para mostrar el empleado con más días arriba
+    
+    # Optimizar márgenes
+    ax.margins(0)  # Eliminar márgenes adicionales alrededor del gráfico
     
     # Añadir los números de días sobre las barras
     for bar, day in zip(bars, days):
