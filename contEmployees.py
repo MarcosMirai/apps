@@ -19,13 +19,17 @@ def process_files(uploaded_files):
     return employee_totals
 
 def plot_results(employee_totals):
-    """Mostrar un gráfico de barras de los resultados."""
+    """Mostrar un gráfico de barras de los resultados con espaciado dinámico."""
     # Ordenar los empleados por número de días (de mayor a menor)
     sorted_totals = sorted(employee_totals.items(), key=lambda x: x[1], reverse=True)
     names, days = zip(*sorted_totals)
     
+    # Ajustar el tamaño del gráfico dinámicamente en función del número de empleados
+    num_employees = len(names)
+    fig_height = max(6, num_employees * 0.4)  # Al menos 6, incrementa con más empleados
+    
     # Crear el gráfico de barras
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, fig_height))
     bars = ax.barh(names, days, color='skyblue')
     ax.set_xlabel('Días')
     ax.set_title('Total de Días por Empleado')
