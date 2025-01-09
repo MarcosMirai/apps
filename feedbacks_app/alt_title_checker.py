@@ -85,8 +85,12 @@ def run():
             new_links = get_all_links(current_url, base_url)
             urls_to_visit.update(new_links - visited_urls)
 
-            # Actualizar progreso
-            progress_bar.progress(len(visited_urls) / total_urls if total_urls else 1.0)
+            # Actualizar el total de URLs dinámicamente
+            total_urls = len(visited_urls) + len(urls_to_visit)
+
+            # Actualizar progreso de forma segura
+            progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
+
 
         # Mostrar resultados en Streamlit
         st.subheader("Resumen del análisis:")
