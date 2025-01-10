@@ -2,8 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import streamlit as st
-import time  # Para medir el tiempo de ejecución
-import io    # Para generar archivos descargables
+import time
+import io
 
 # Función para obtener las URLs de las imágenes de una página
 def get_image_urls(page_url):
@@ -61,28 +61,28 @@ def run():
         total_404_errors = 0
         total_images = 0
 
-        # Listados de URLs
         urls_no_alt = []
         urls_no_title = []
         urls_no_both = []
         urls_404 = []
         urls_images = []
 
-        # Tiempo de inicio
         start_time = time.time()
 
         st.info("Analizando el sitio web, esto puede tardar un momento...")
         progress_bar = st.progress(0)
         total_urls = len(urls_to_visit)
 
-        # Contenedor para el tiempo transcurrido
         time_placeholder = st.empty()
+        status_placeholder = st.empty()
 
         while urls_to_visit:
             current_url = urls_to_visit.pop()
             if current_url in visited_urls:
                 continue
             visited_urls.add(current_url)
+
+            status_placeholder.text(f"Procesando: {current_url}")
 
             img_tags = get_image_urls(current_url)
             if img_tags == []:
@@ -111,14 +111,15 @@ def run():
             total_urls = len(visited_urls) + len(urls_to_visit)
             progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
 
-            # Actualizar tiempo transcurrido dinámicamente
             elapsed_time = time.time() - start_time
-            time_placeholder.text(f"Tiempo transcurrido: {elapsed_time:.2f} segundos")
+            hours, rem = divmod(elapsed_time, 3600)
+            minutes, seconds = divmod(rem, 60)
+            time_placeholder.text(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
 
-            # Pequeña pausa para prevenir timeouts
-            time.sleep(0.1)
+            time.sleep(0.1)  # Pausa breve para prevenir desconexiones
 
-        # Mostrar resultados en Streamlit
+        status_placeholder.text("Análisis completado.")
+
         st.subheader("Resumen del análisis:")
         st.write(f"**Total de imágenes analizadas:** {total_images}")
         st.write(f"**Total de imágenes sin alt:** {total_no_alt}")
@@ -126,7 +127,7 @@ def run():
         st.write(f"**Total de imágenes sin ambos atributos:** {total_no_both}")
         st.write(f"**Total de errores 404 encontrados:** {total_404_errors}")
 
-        # Mostrar expanders y enlaces para descargar archivos
+        # Expanders y botones de descarga
         def create_download_button(file_content, label):
             file = io.StringIO("\n".join(file_content))
             st.download_button(label=f"Descargar listado {label}", data=file.getvalue(), file_name=f"{label}.txt")
