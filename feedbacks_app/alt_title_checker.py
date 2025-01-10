@@ -2,7 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import streamlit as st
-import io  # Para generar archivos descargables
+import time  # Para medir el tiempo de ejecución
+import io    # Para generar archivos descargables
 
 # Función para obtener las URLs de las imágenes de una página
 def get_image_urls(page_url):
@@ -58,7 +59,7 @@ def run():
         total_no_title = 0
         total_no_both = 0
         total_404_errors = 0
-        total_images = 0  # Contador total de imágenes analizadas
+        total_images = 0
 
         # Listados de URLs
         urls_no_alt = []
@@ -67,9 +68,15 @@ def run():
         urls_404 = []
         urls_images = []
 
+        # Tiempo de inicio
+        start_time = time.time()
+
         st.info("Analizando el sitio web, esto puede tardar un momento...")
         progress_bar = st.progress(0)
         total_urls = len(urls_to_visit)
+
+        # Contenedor para el tiempo transcurrido
+        time_placeholder = st.empty()
 
         while urls_to_visit:
             current_url = urls_to_visit.pop()
@@ -103,6 +110,13 @@ def run():
 
             total_urls = len(visited_urls) + len(urls_to_visit)
             progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
+
+            # Actualizar tiempo transcurrido dinámicamente
+            elapsed_time = time.time() - start_time
+            time_placeholder.text(f"Tiempo transcurrido: {elapsed_time:.2f} segundos")
+
+            # Pequeña pausa para prevenir timeouts
+            time.sleep(0.1)
 
         # Mostrar resultados en Streamlit
         st.subheader("Resumen del análisis:")
