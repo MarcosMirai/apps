@@ -8,8 +8,8 @@ def get_image_urls(page_url):
     try:
         response = requests.get(page_url)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        st.warning(f"Error al intentar acceder a la URL: {e}")
+    except requests.exceptions.RequestException:
+        # Retorna lista vacía en caso de error (404 u otro)
         return []
 
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -26,8 +26,8 @@ def get_all_links(page_url, base_url):
     try:
         response = requests.get(page_url)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        st.warning(f"Error al intentar acceder a la URL: {e}")
+    except requests.exceptions.RequestException:
+        # Retorna lista vacía en caso de error (404 u otro)
         return []
 
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -42,7 +42,7 @@ def get_all_links(page_url, base_url):
             links.add(href)
     return links
 
-# Función principal para rastrear y analizar el sitio
+# Función principal
 def run():
     st.title("Comprobador de atributos alt y title en imágenes")
     base_url = st.text_input("Introduce la URL del sitio web:")
@@ -58,6 +58,7 @@ def run():
         total_no_alt = 0
         total_no_title = 0
         total_no_both = 0
+        total_404_errors = 0  # Contador para errores 404
 
         st.info("Analizando el sitio web, esto puede tardar un momento...")
         progress_bar = st.progress(0)
@@ -69,10 +70,14 @@ def run():
                 continue
             visited_urls.add(current_url)
 
+            # Obtener imágenes de la URL
             img_tags = get_image_urls(current_url)
-            if not img_tags:
+            if img_tags == []:
+                # Incrementar contador de errores 404 si no hay imágenes y la página no está disponible
+                total_404_errors += 1
                 continue
 
+            # Verificar atributos alt y title en las imágenes
             for img_tag in img_tags:
                 alt_absent, title_absent = check_alt_title(img_tag)
                 if alt_absent and title_absent:
@@ -82,19 +87,18 @@ def run():
                 elif title_absent:
                     total_no_title += 1
 
+            # Obtener nuevos enlaces de la página
             new_links = get_all_links(current_url, base_url)
             urls_to_visit.update(new_links - visited_urls)
 
-            # Actualizar el total de URLs dinámicamente
+            # Actualizar total de URLs y progreso
             total_urls = len(visited_urls) + len(urls_to_visit)
-
-            # Actualizar progreso de forma segura
             progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
-
 
         # Mostrar resultados en Streamlit
         st.subheader("Resumen del análisis:")
         st.write(f"**Total de imágenes sin alt:** {total_no_alt}")
         st.write(f"**Total de imágenes sin title:** {total_no_title}")
         st.write(f"**Total de imágenes sin ambos atributos:** {total_no_both}")
+        st.write(f"**Total de errores 404 encontrados:** {total_404_errors}")
         st.success("Análisis completado.")
