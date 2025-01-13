@@ -93,7 +93,13 @@ def run():
                 continue
             visited_urls.add(current_url)
 
-            status_placeholder.text(f"Procesando: {current_url}")
+            # Evitar demasiadas actualizaciones dinámicas
+            if len(visited_urls) % 10 == 0:  # Actualizar cada 10 URLs
+                status_placeholder.text(f"Procesando: {current_url}")
+                elapsed_time = time.time() - start_time
+                hours, rem = divmod(elapsed_time, 3600)
+                minutes, seconds = divmod(rem, 60)
+                time_placeholder.text(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
 
             img_tags = get_image_urls(current_url, image_prefix)
             if not img_tags:
@@ -122,46 +128,7 @@ def run():
             total_urls = len(visited_urls) + len(urls_to_visit)
             progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
 
-            elapsed_time = time.time() - start_time
-            hours, rem = divmod(elapsed_time, 3600)
-            minutes, seconds = divmod(rem, 60)
-            time_placeholder.text(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
-
-            time.sleep(0.1)  # Pausa breve para prevenir desconexiones
+            time.sleep(0.1)  # Pausa breve para liberar recursos
 
         progress_bar.progress(1.0)  # Asegurar que la barra llegue al 100%
         status_placeholder.text("Análisis completado.")
-
-        st.subheader("Resumen del análisis:")
-        st.write(f"**Total de imágenes analizadas:** {total_images}")
-        st.write(f"**Total de imágenes sin alt:** {total_no_alt}")
-        st.write(f"**Total de imágenes sin title:** {total_no_title}")
-        st.write(f"**Total de imágenes sin ambos atributos:** {total_no_both}")
-        st.write(f"**Total de errores 404 encontrados:** {total_404_errors}")
-
-        # Expanders y botones de descarga
-        def create_download_button(file_content, label):
-            file = io.StringIO("\n".join(file_content))
-            st.download_button(label=f"Descargar listado {label}", data=file.getvalue(), file_name=f"{label}.txt")
-
-        with st.expander("Ver listado de imágenes sin alt"):
-            st.write(urls_no_alt if urls_no_alt else "Ninguna")
-            create_download_button(urls_no_alt, "sin_alt")
-
-        with st.expander("Ver listado de imágenes sin title"):
-            st.write(urls_no_title if urls_no_title else "Ninguna")
-            create_download_button(urls_no_title, "sin_title")
-
-        with st.expander("Ver listado de imágenes sin ambos atributos"):
-            st.write(urls_no_both if urls_no_both else "Ninguna")
-            create_download_button(urls_no_both, "sin_ambos_atributos")
-
-        with st.expander("Ver listado de errores 404"):
-            st.write(urls_404 if urls_404 else "Ninguno")
-            create_download_button(urls_404, "errores_404")
-
-        with st.expander("Ver listado total de imágenes analizadas"):
-            st.write(urls_images if urls_images else "Ninguna")
-            create_download_button(urls_images, "total_imagenes")
-
-        st.success("Análisis completado.")
