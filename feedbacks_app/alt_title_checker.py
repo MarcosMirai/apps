@@ -5,8 +5,11 @@ import streamlit as st
 import time
 import io
 
+# Prefijo común para filtrar imágenes
+COMMON_IMAGE_PREFIX = "https://static-resources-elementor.mirai.com/wp-content/uploads/sites/"
+
 # Función para obtener las URLs de las imágenes de una página
-def get_image_urls(page_url):
+def get_image_urls(page_url, image_prefix):
     try:
         response = requests.get(page_url)
         response.raise_for_status()
@@ -14,7 +17,11 @@ def get_image_urls(page_url):
         return []
 
     soup = BeautifulSoup(response.content, 'html.parser')
-    return soup.find_all('img')
+    img_tags = soup.find_all('img')
+
+    # Filtrar imágenes que comiencen con el prefijo indicado
+    filtered_images = [img for img in img_tags if 'src' in img.attrs and img['src'].startswith(image_prefix)]
+    return filtered_images
 
 # Función para verificar alt y title de una imagen
 def check_alt_title(img_tag):
@@ -46,12 +53,16 @@ def get_all_links(page_url, base_url):
 def run():
     st.title("Comprobador de atributos alt y title en imágenes")
     base_url = st.text_input("Introduce la URL del sitio web:")
+    site_number = st.text_input("Introduce el número del site (directorio):", "1303")
     
     if st.button("Iniciar análisis"):
-        if not base_url:
-            st.error("Por favor, introduce una URL válida.")
+        if not base_url or not site_number:
+            st.error("Por favor, introduce una URL válida y el número del site.")
             return
-        
+
+        # Construir el prefijo del directorio específico
+        image_prefix = f"{COMMON_IMAGE_PREFIX}{site_number}/"
+
         urls_to_visit = set([base_url])
         visited_urls = set()
 
@@ -84,8 +95,8 @@ def run():
 
             status_placeholder.text(f"Procesando: {current_url}")
 
-            img_tags = get_image_urls(current_url)
-            if img_tags == []:
+            img_tags = get_image_urls(current_url, image_prefix)
+            if not img_tags:
                 total_404_errors += 1
                 urls_404.append(current_url)
                 continue
@@ -118,6 +129,7 @@ def run():
 
             time.sleep(0.1)  # Pausa breve para prevenir desconexiones
 
+        progress_bar.progress(1.0)  # Asegurar que la barra llegue al 100%
         status_placeholder.text("Análisis completado.")
 
         st.subheader("Resumen del análisis:")
