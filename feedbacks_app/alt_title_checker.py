@@ -124,8 +124,9 @@ def run():
                         total_no_title += 1
                         urls_no_title.append(img_url)
 
+                # Convertir new_links a conjunto para realizar la operación
                 new_links = get_all_links(current_url, base_url)
-                urls_to_visit.update(new_links - visited_urls)
+                urls_to_visit.update(set(new_links) - visited_urls)
 
             total_urls = len(visited_urls) + len(urls_to_visit)
             progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
