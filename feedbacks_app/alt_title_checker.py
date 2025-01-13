@@ -8,10 +8,11 @@ import io
 # Prefijo común para filtrar imágenes
 COMMON_IMAGE_PREFIX = "https://static-resources-elementor.mirai.com/wp-content/uploads/sites/"
 
-# Función para obtener las URLs de las imágenes de una página
+# Función para obtener las URLs de las imágenes de una página (con caché)
+@st.cache_data
 def get_image_urls(page_url, image_prefix):
     try:
-        response = requests.get(page_url)
+        response = requests.get(page_url, timeout=10)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         st.warning(f"Error al obtener imágenes de {page_url}: {e}")
@@ -30,10 +31,11 @@ def check_alt_title(img_tag):
     title_absent = 'title' not in img_tag.attrs or img_tag['title'].strip() == ""
     return alt_absent, title_absent
 
-# Función para encontrar todas las URLs en una página
+# Función para encontrar todas las URLs en una página (con caché)
+@st.cache_data
 def get_all_links(page_url, base_url):
     try:
-        response = requests.get(page_url)
+        response = requests.get(page_url, timeout=10)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         st.warning(f"Error al obtener enlaces de {page_url}: {e}")
@@ -90,8 +92,11 @@ def run():
         status_placeholder = st.empty()
 
         while urls_to_visit:
-            try:
-                current_url = urls_to_visit.pop()
+            # Procesar en bloques de 10 URLs
+            block = list(urls_to_visit)[:10]
+            urls_to_visit = urls_to_visit - set(block)
+
+            for current_url in block:
                 if current_url in visited_urls:
                     continue
                 visited_urls.add(current_url)
@@ -122,18 +127,15 @@ def run():
                 new_links = get_all_links(current_url, base_url)
                 urls_to_visit.update(new_links - visited_urls)
 
-                total_urls = len(visited_urls) + len(urls_to_visit)
-                progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
+            total_urls = len(visited_urls) + len(urls_to_visit)
+            progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
 
-                elapsed_time = time.time() - start_time
-                hours, rem = divmod(elapsed_time, 3600)
-                minutes, seconds = divmod(rem, 60)
-                time_placeholder.text(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+            elapsed_time = time.time() - start_time
+            hours, rem = divmod(elapsed_time, 3600)
+            minutes, seconds = divmod(rem, 60)
+            time_placeholder.text(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
 
-                time.sleep(0.1)  # Pausa breve para liberar recursos
-
-            except Exception as e:
-                st.error(f"Error inesperado procesando {current_url}: {e}")
+            time.sleep(0.1)  # Pausa breve para liberar recursos
 
         progress_bar.progress(1.0)  # Asegurar que la barra llegue al 100%
         status_placeholder.text("Análisis completado.")
