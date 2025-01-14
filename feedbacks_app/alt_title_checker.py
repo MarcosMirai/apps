@@ -3,12 +3,36 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import streamlit as st
 import time
-import io
 
 # Prefijo común para filtrar imágenes
 COMMON_IMAGE_PREFIX = "https://static-resources-elementor.mirai.com/wp-content/uploads/sites/"
+BLOCK_SIZE = 500  # Tamaño de los bloques
 
-# Función para obtener las URLs de las imágenes de una página (con caché)
+# Inicialización de estado
+if 'urls_to_visit' not in st.session_state:
+    st.session_state['urls_to_visit'] = set()
+if 'visited_urls' not in st.session_state:
+    st.session_state['visited_urls'] = set()
+if 'totals' not in st.session_state:
+    st.session_state['totals'] = {
+        'no_alt': 0,
+        'no_title': 0,
+        'no_both': 0,
+        '404_errors': 0,
+        'total_images': 0,
+    }
+if 'results' not in st.session_state:
+    st.session_state['results'] = {
+        'no_alt': [],
+        'no_title': [],
+        'no_both': [],
+        '404_errors': [],
+        'all_images': [],
+    }
+if 'block_counter' not in st.session_state:
+    st.session_state['block_counter'] = 0
+
+# Función para obtener las URLs de las imágenes de una página
 @st.cache_data
 def get_image_urls(page_url, image_prefix):
     try:
@@ -31,7 +55,7 @@ def check_alt_title(img_tag):
     title_absent = 'title' not in img_tag.attrs or img_tag['title'].strip() == ""
     return alt_absent, title_absent
 
-# Función para encontrar todas las URLs en una página (con caché)
+# Función para encontrar todas las URLs en una página
 @st.cache_data
 def get_all_links(page_url, base_url):
     try:
@@ -64,86 +88,87 @@ def run():
             st.error("Por favor, introduce una URL válida y el número del site.")
             return
 
-        # Construir el prefijo del directorio específico
+        # Inicializar el análisis
+        st.session_state['urls_to_visit'] = set([base_url])
+        st.session_state['visited_urls'] = set()
+        st.session_state['totals'] = {
+            'no_alt': 0,
+            'no_title': 0,
+            'no_both': 0,
+            '404_errors': 0,
+            'total_images': 0,
+        }
+        st.session_state['results'] = {
+            'no_alt': [],
+            'no_title': [],
+            'no_both': [],
+            '404_errors': [],
+            'all_images': [],
+        }
+        st.session_state['block_counter'] = 0
+
+    # Verificar si hay URLs pendientes
+    if st.session_state['urls_to_visit']:
         image_prefix = f"{COMMON_IMAGE_PREFIX}{site_number}/"
+        block_counter = st.session_state['block_counter'] + 1
+        urls_to_visit = st.session_state['urls_to_visit']
+        visited_urls = st.session_state['visited_urls']
+        totals = st.session_state['totals']
+        results = st.session_state['results']
 
-        urls_to_visit = set([base_url])
-        visited_urls = set()
+        # Procesar un bloque de URLs
+        block = list(urls_to_visit)[:BLOCK_SIZE]
+        st.session_state['urls_to_visit'] = urls_to_visit - set(block)
 
-        total_no_alt = 0
-        total_no_title = 0
-        total_no_both = 0
-        total_404_errors = 0
-        total_images = 0
+        for current_url in block:
+            if current_url in visited_urls:
+                continue
+            visited_urls.add(current_url)
 
-        urls_no_alt = []
-        urls_no_title = []
-        urls_no_both = []
-        urls_404 = []
-        urls_images = []
+            st.write(f"Procesando: {current_url}")
 
-        start_time = time.time()
+            img_tags = get_image_urls(current_url, image_prefix)
+            if not img_tags:
+                totals['404_errors'] += 1
+                results['404_errors'].append(current_url)
+                continue
 
-        st.info("Analizando el sitio web, esto puede tardar un momento...")
-        progress_bar = st.progress(0)
-        total_urls = len(urls_to_visit)
+            for img_tag in img_tags:
+                img_url = img_tag.get('src', 'URL no disponible')
+                results['all_images'].append(img_url)
+                totals['total_images'] += 1
+                alt_absent, title_absent = check_alt_title(img_tag)
+                if alt_absent and title_absent:
+                    totals['no_both'] += 1
+                    results['no_both'].append(img_url)
+                elif alt_absent:
+                    totals['no_alt'] += 1
+                    results['no_alt'].append(img_url)
+                elif title_absent:
+                    totals['no_title'] += 1
+                    results['no_title'].append(img_url)
 
-        time_placeholder = st.empty()
-        status_placeholder = st.empty()
+            new_links = get_all_links(current_url, base_url)
+            st.session_state['urls_to_visit'].update(set(new_links) - visited_urls)
 
-        while urls_to_visit:
-            # Procesar en bloques de 10 URLs
-            block = list(urls_to_visit)[:10]
-            urls_to_visit = urls_to_visit - set(block)
+        # Actualizar el estado
+        st.session_state['visited_urls'] = visited_urls
+        st.session_state['totals'] = totals
+        st.session_state['results'] = results
+        st.session_state['block_counter'] = block_counter
 
-            for current_url in block:
-                if current_url in visited_urls:
-                    continue
-                visited_urls.add(current_url)
+        # Resumen parcial
+        st.subheader(f"Resumen parcial (Bloque {block_counter}):")
+        st.write(f"**Total de imágenes analizadas:** {totals['total_images']}")
+        st.write(f"**Total de imágenes sin alt:** {totals['no_alt']}")
+        st.write(f"**Total de imágenes sin title:** {totals['no_title']}")
+        st.write(f"**Total de imágenes sin ambos atributos:** {totals['no_both']}")
+        st.write(f"**Total de errores 404 encontrados:** {totals['404_errors']}")
 
-                status_placeholder.text(f"Procesando: {current_url}")
-
-                img_tags = get_image_urls(current_url, image_prefix)
-                if not img_tags:
-                    total_404_errors += 1
-                    urls_404.append(current_url)
-                    continue
-
-                for img_tag in img_tags:
-                    img_url = img_tag.get('src', 'URL no disponible')
-                    urls_images.append(img_url)
-                    total_images += 1
-                    alt_absent, title_absent = check_alt_title(img_tag)
-                    if alt_absent and title_absent:
-                        total_no_both += 1
-                        urls_no_both.append(img_url)
-                    elif alt_absent:
-                        total_no_alt += 1
-                        urls_no_alt.append(img_url)
-                    elif title_absent:
-                        total_no_title += 1
-                        urls_no_title.append(img_url)
-
-                # Convertir new_links a conjunto para realizar la operación
-                new_links = get_all_links(current_url, base_url)
-                urls_to_visit.update(set(new_links) - visited_urls)
-
-            total_urls = len(visited_urls) + len(urls_to_visit)
-            progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
-
-            elapsed_time = time.time() - start_time
-            hours, rem = divmod(elapsed_time, 3600)
-            minutes, seconds = divmod(rem, 60)
-            time_placeholder.text(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
-
-            time.sleep(0.1)  # Pausa breve para liberar recursos
-
-        progress_bar.progress(1.0)  # Asegurar que la barra llegue al 100%
-        status_placeholder.text("Análisis completado.")
-
-        st.subheader("Resumen del análisis:")
-        st.write(f"**Total de imágenes analizadas:** {total_images}")
-        st.write(f"**Total de imágenes sin alt:** {total_no_alt}")
-        st.write(f"**Total de imágenes sin title:** {total_no_title}")
-        st.write(f"**Total de imágenes sin ambos atributos:** {total_no_both}")
-        st.write(f"**Total de errores 404 encontrados:** {total_404_errors}")
+        # Botón para continuar con el siguiente bloque
+        if st.session_state['urls_to_visit']:
+            st.write(f"URLs restantes: {len(st.session_state['urls_to_visit'])}")
+            if st.button("Continuar con el siguiente bloque"):
+                st.experimental_rerun()
+        else:
+            st.success("Análisis completado.")
