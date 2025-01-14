@@ -12,81 +12,42 @@ REQUEST_TIMEOUT = 10  # Tiempo límite para solicitudes HTTP (en segundos)
 # Prefijo común para filtrar imágenes
 COMMON_IMAGE_PREFIX = "https://static-resources-elementor.mirai.com/wp-content/uploads/sites/"
 
-# Inicializar estado
-if 'urls_to_visit' not in st.session_state:
-    st.session_state['urls_to_visit'] = []
-if 'visited_urls' not in st.session_state:
-    st.session_state['visited_urls'] = set()
-if 'totals' not in st.session_state:
-    st.session_state['totals'] = {
-        'no_alt': 0,
-        'no_title': 0,
-        'no_both': 0,
-        '404_errors': 0,
-        'total_images': 0,
-    }
-if 'urls_grouped' not in st.session_state:
-    st.session_state['urls_grouped'] = {
-        'no_alt': [],
-        'no_title': [],
-        'no_both': [],
-        '404_errors': [],
-        'total_images': [],
-    }
-if 'block_counter' not in st.session_state:
-    st.session_state['block_counter'] = 0
-if 'continue_analysis' not in st.session_state:
-    st.session_state['continue_analysis'] = False  # Flag para continuar el análisis
-
-# Función para obtener las URLs de las imágenes de una página
-def get_image_urls(page_url, image_prefix):
-    try:
-        response = requests.get(page_url, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        st.warning(f"Error al obtener imágenes de {page_url}: {e}")
-        return []
-
-    soup = BeautifulSoup(response.content, 'html.parser')
-    img_tags = soup.find_all('img')
-
-    # Filtrar imágenes que comiencen con el prefijo indicado
-    filtered_images = [img for img in img_tags if 'src' in img.attrs and img['src'].startswith(image_prefix)]
-    return filtered_images
-
-# Función para verificar alt y title de una imagen
-def check_alt_title(img_tag):
-    alt_absent = 'alt' not in img_tag.attrs or img_tag['alt'].strip() == ""
-    title_absent = 'title' not in img_tag.attrs or img_tag['title'].strip() == ""
-    return alt_absent, title_absent
-
-# Función para encontrar todas las URLs en una página
-def get_all_links(page_url, base_url):
-    try:
-        response = requests.get(page_url, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        st.warning(f"Error al obtener enlaces de {page_url}: {e}")
-        return []
-
-    soup = BeautifulSoup(response.content, 'html.parser')
-    links = set()
-    for a_tag in soup.find_all('a', href=True):
-        href = a_tag['href']
-        if href.startswith('/'):
-            href = urljoin(base_url, href)
-        elif not bool(urlparse(href).netloc):
-            href = urljoin(base_url, href)
-        if href.startswith(base_url):
-            links.add(href)
-    return links
-
 # Función principal
 def run():
+    # Inicializar claves en session_state si no existen
+    if 'urls_to_visit' not in st.session_state:
+        st.session_state['urls_to_visit'] = []
+    if 'visited_urls' not in st.session_state:
+        st.session_state['visited_urls'] = set()
+    if 'totals' not in st.session_state:
+        st.session_state['totals'] = {
+            'no_alt': 0,
+            'no_title': 0,
+            'no_both': 0,
+            '404_errors': 0,
+            'total_images': 0,
+        }
+    if 'urls_grouped' not in st.session_state:
+        st.session_state['urls_grouped'] = {
+            'no_alt': [],
+            'no_title': [],
+            'no_both': [],
+            '404_errors': [],
+            'total_images': [],
+        }
+    if 'block_counter' not in st.session_state:
+        st.session_state['block_counter'] = 0
+    if 'continue_analysis' not in st.session_state:
+        st.session_state['continue_analysis'] = False  # Flag para continuar el análisis
+
+    # Título de la aplicación
     st.title("Comprobador de atributos alt y title en imágenes")
+
+    # Inputs iniciales
     base_url = st.text_input("Introduce la URL del sitio web:")
     site_number = st.text_input("Introduce el número del site (directorio):", "1303")
     
+    # Botón para iniciar análisis
     if st.button("Iniciar análisis"):
         if not base_url or not site_number:
             st.error("Por favor, introduce una URL válida y el número del site.")
@@ -100,6 +61,7 @@ def run():
 
     # Verificar si hay URLs para procesar
     if st.session_state['urls_to_visit'] and st.session_state['continue_analysis']:
+        # Construir el prefijo del directorio específico
         image_prefix = f"{COMMON_IMAGE_PREFIX}{site_number}/"
         urls_to_visit = st.session_state['urls_to_visit']
         visited_urls = st.session_state['visited_urls']
@@ -118,6 +80,7 @@ def run():
 
             st.write(f"Procesando: {current_url} (Profundidad: {depth})")
 
+            # Llamada a funciones auxiliares
             img_tags = get_image_urls(current_url, image_prefix)
             if not img_tags:
                 totals['404_errors'] += 1
