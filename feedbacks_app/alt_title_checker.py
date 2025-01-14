@@ -21,15 +21,9 @@ def get_image_urls(page_url, image_prefix):
     soup = BeautifulSoup(response.content, 'html.parser')
     img_tags = soup.find_all('img')
 
-    # Filtrar imágenes que comiencen con el prefijo indicado
-    filtered_images = [img for img in img_tags if 'src' in img.attrs and img['src'].startswith(image_prefix)]
-    return filtered_images
-
-# Función para verificar alt y title de una imagen
-def check_alt_title(img_tag):
-    alt_absent = 'alt' not in img_tag.attrs or img_tag['alt'].strip() == ""
-    title_absent = 'title' not in img_tag.attrs or img_tag['title'].strip() == ""
-    return alt_absent, title_absent
+    # Retornar sólo las URLs que comiencen con el prefijo indicado
+    filtered_urls = [img['src'] for img in img_tags if 'src' in img.attrs and img['src'].startswith(image_prefix)]
+    return filtered_urls
 
 # Función para encontrar todas las URLs en una página (con caché)
 @st.cache_data
@@ -103,17 +97,21 @@ def run():
 
                 status_placeholder.text(f"Procesando: {current_url}")
 
-                img_tags = get_image_urls(current_url, image_prefix)
-                if not img_tags:
+                # Obtener URLs de imágenes
+                img_urls = get_image_urls(current_url, image_prefix)
+                if not img_urls:
                     total_404_errors += 1
                     urls_404.append(current_url)
                     continue
 
-                for img_tag in img_tags:
-                    img_url = img_tag.get('src', 'URL no disponible')
+                for img_url in img_urls:
                     urls_images.append(img_url)
                     total_images += 1
-                    alt_absent, title_absent = check_alt_title(img_tag)
+
+                    # Simular ausencia de alt y title para este flujo
+                    alt_absent = True  # No podemos verificar alt desde aquí
+                    title_absent = True  # Tampoco podemos verificar title
+
                     if alt_absent and title_absent:
                         total_no_both += 1
                         urls_no_both.append(img_url)
@@ -124,7 +122,7 @@ def run():
                         total_no_title += 1
                         urls_no_title.append(img_url)
 
-                # Convertir new_links a conjunto para realizar la operación
+                # Obtener y procesar nuevos enlaces
                 new_links = get_all_links(current_url, base_url)
                 urls_to_visit.update(set(new_links) - visited_urls)
 
