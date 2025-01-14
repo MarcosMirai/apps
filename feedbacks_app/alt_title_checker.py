@@ -5,6 +5,11 @@ import streamlit as st
 import time
 import io
 
+# Configuración de límites
+BLOCK_SIZE = 500  # Tamaño del bloque de URLs a procesar
+MAX_DEPTH = 2     # Límite de profundidad
+REQUEST_TIMEOUT = 10  # Tiempo límite para solicitudes HTTP (en segundos)
+
 # Prefijo común para filtrar imágenes
 COMMON_IMAGE_PREFIX = "https://static-resources-elementor.mirai.com/wp-content/uploads/sites/"
 
@@ -12,7 +17,7 @@ COMMON_IMAGE_PREFIX = "https://static-resources-elementor.mirai.com/wp-content/u
 @st.cache_data
 def get_image_urls(page_url, image_prefix):
     try:
-        response = requests.get(page_url, timeout=10)
+        response = requests.get(page_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         st.warning(f"Error al obtener imágenes de {page_url}: {e}")
@@ -35,7 +40,7 @@ def check_alt_title(img_tag):
 @st.cache_data
 def get_all_links(page_url, base_url):
     try:
-        response = requests.get(page_url, timeout=10)
+        response = requests.get(page_url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         st.warning(f"Error al obtener enlaces de {page_url}: {e}")
@@ -67,7 +72,7 @@ def run():
         # Construir el prefijo del directorio específico
         image_prefix = f"{COMMON_IMAGE_PREFIX}{site_number}/"
 
-        urls_to_visit = set([base_url])
+        urls_to_visit = [(base_url, 0)]  # Cada URL tendrá un nivel de profundidad asociado
         visited_urls = set()
 
         total_no_alt = 0
@@ -84,24 +89,21 @@ def run():
 
         start_time = time.time()
 
-        st.info("Analizando el sitio web, esto puede tardar un momento...")
+        st.info("Analizando el sitio web en bloques...")
         progress_bar = st.progress(0)
-        total_urls = len(urls_to_visit)
-
-        time_placeholder = st.empty()
-        status_placeholder = st.empty()
+        block_counter = 0  # Contador de bloques procesados
 
         while urls_to_visit:
-            # Procesar en bloques de 10 URLs
-            block = list(urls_to_visit)[:10]
-            urls_to_visit = urls_to_visit - set(block)
+            block_counter += 1
+            current_block = urls_to_visit[:BLOCK_SIZE]
+            urls_to_visit = urls_to_visit[BLOCK_SIZE:]
 
-            for current_url in block:
-                if current_url in visited_urls:
+            for current_url, depth in current_block:
+                if current_url in visited_urls or depth > MAX_DEPTH:
                     continue
                 visited_urls.add(current_url)
 
-                status_placeholder.text(f"Procesando: {current_url}")
+                st.write(f"Procesando: {current_url} (Profundidad: {depth})")
 
                 img_tags = get_image_urls(current_url, image_prefix)
                 if not img_tags:
@@ -124,26 +126,31 @@ def run():
                         total_no_title += 1
                         urls_no_title.append(img_url)
 
-                # Convertir new_links a conjunto para realizar la operación
                 new_links = get_all_links(current_url, base_url)
-                urls_to_visit.update(set(new_links) - visited_urls)
+                urls_to_visit.extend([(link, depth + 1) for link in new_links if link not in visited_urls])
 
-            total_urls = len(visited_urls) + len(urls_to_visit)
-            progress_bar.progress(min(len(visited_urls) / total_urls, 1.0))
+            # Actualizar barra de progreso y mostrar resumen parcial
+            progress_bar.progress(min(block_counter * BLOCK_SIZE / (block_counter * BLOCK_SIZE + len(urls_to_visit)), 1.0))
 
             elapsed_time = time.time() - start_time
             hours, rem = divmod(elapsed_time, 3600)
             minutes, seconds = divmod(rem, 60)
-            time_placeholder.text(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+            st.write(f"Tiempo transcurrido: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
 
-            time.sleep(0.1)  # Pausa breve para liberar recursos
+            # Resumen parcial
+            st.subheader(f"Resumen parcial (Bloque {block_counter}):")
+            st.write(f"**Total de imágenes analizadas:** {total_images}")
+            st.write(f"**Total de imágenes sin alt:** {total_no_alt}")
+            st.write(f"**Total de imágenes sin title:** {total_no_title}")
+            st.write(f"**Total de imágenes sin ambos atributos:** {total_no_both}")
+            st.write(f"**Total de errores 404 encontrados:** {total_404_errors}")
 
-        progress_bar.progress(1.0)  # Asegurar que la barra llegue al 100%
-        status_placeholder.text("Análisis completado.")
+            # Pausar para confirmar antes de continuar
+            if urls_to_visit:
+                if not st.button(f"Continuar con el siguiente bloque ({len(urls_to_visit)} URLs restantes)"):
+                    st.warning("Análisis pausado. Haz clic en el botón para continuar.")
+                    return
 
-        st.subheader("Resumen del análisis:")
-        st.write(f"**Total de imágenes analizadas:** {total_images}")
-        st.write(f"**Total de imágenes sin alt:** {total_no_alt}")
-        st.write(f"**Total de imágenes sin title:** {total_no_title}")
-        st.write(f"**Total de imágenes sin ambos atributos:** {total_no_both}")
-        st.write(f"**Total de errores 404 encontrados:** {total_404_errors}")
+        # Finalizar análisis
+        progress_bar.progress(1.0)
+        st.success("Análisis completado.")
