@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import streamlit as st
 import time
-import io
 
 # Configuración de límites
 BLOCK_SIZE = 500  # Tamaño del bloque de URLs a procesar
@@ -36,6 +35,8 @@ if 'urls_grouped' not in st.session_state:
     }
 if 'block_counter' not in st.session_state:
     st.session_state['block_counter'] = 0
+if 'continue_analysis' not in st.session_state:
+    st.session_state['continue_analysis'] = False  # Flag para continuar el análisis
 
 # Función para obtener las URLs de las imágenes de una página
 def get_image_urls(page_url, image_prefix):
@@ -82,31 +83,6 @@ def get_all_links(page_url, base_url):
 
 # Función principal
 def run():
-    # Inicializar claves en session_state si no existen
-    if 'urls_to_visit' not in st.session_state:
-        st.session_state['urls_to_visit'] = []
-    if 'visited_urls' not in st.session_state:
-        st.session_state['visited_urls'] = set()
-    if 'totals' not in st.session_state:
-        st.session_state['totals'] = {
-            'no_alt': 0,
-            'no_title': 0,
-            'no_both': 0,
-            '404_errors': 0,
-            'total_images': 0,
-        }
-    if 'urls_grouped' not in st.session_state:
-        st.session_state['urls_grouped'] = {
-            'no_alt': [],
-            'no_title': [],
-            'no_both': [],
-            '404_errors': [],
-            'total_images': [],
-        }
-    if 'block_counter' not in st.session_state:
-        st.session_state['block_counter'] = 0
-
-    # Resto de la función run()
     st.title("Comprobador de atributos alt y title en imágenes")
     base_url = st.text_input("Introduce la URL del sitio web:")
     site_number = st.text_input("Introduce el número del site (directorio):", "1303")
@@ -119,11 +95,11 @@ def run():
         # Inicializar URLs a visitar si el análisis es nuevo
         if not st.session_state['urls_to_visit']:
             st.session_state['urls_to_visit'] = [(base_url, 0)]
-
-    # Resto del análisis...
+            st.session_state['block_counter'] = 0
+            st.session_state['continue_analysis'] = True
 
     # Verificar si hay URLs para procesar
-    if st.session_state['urls_to_visit']:
+    if st.session_state['urls_to_visit'] and st.session_state['continue_analysis']:
         image_prefix = f"{COMMON_IMAGE_PREFIX}{site_number}/"
         urls_to_visit = st.session_state['urls_to_visit']
         visited_urls = st.session_state['visited_urls']
@@ -183,7 +159,9 @@ def run():
         # Botón para continuar con el siguiente bloque
         if st.session_state['urls_to_visit']:
             st.write(f"URLs restantes: {len(st.session_state['urls_to_visit'])}")
-            st.button("Continuar con el siguiente bloque", key=f"continue_{block_counter}")
-
+            if st.button("Continuar con el siguiente bloque"):
+                st.session_state['continue_analysis'] = True
+            else:
+                st.session_state['continue_analysis'] = False
         else:
             st.success("Análisis completado.")
