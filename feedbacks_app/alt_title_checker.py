@@ -82,6 +82,31 @@ def get_all_links(page_url, base_url):
 
 # Función principal
 def run():
+    # Inicializar claves en session_state si no existen
+    if 'urls_to_visit' not in st.session_state:
+        st.session_state['urls_to_visit'] = []
+    if 'visited_urls' not in st.session_state:
+        st.session_state['visited_urls'] = set()
+    if 'totals' not in st.session_state:
+        st.session_state['totals'] = {
+            'no_alt': 0,
+            'no_title': 0,
+            'no_both': 0,
+            '404_errors': 0,
+            'total_images': 0,
+        }
+    if 'urls_grouped' not in st.session_state:
+        st.session_state['urls_grouped'] = {
+            'no_alt': [],
+            'no_title': [],
+            'no_both': [],
+            '404_errors': [],
+            'total_images': [],
+        }
+    if 'block_counter' not in st.session_state:
+        st.session_state['block_counter'] = 0
+
+    # Resto de la función run()
     st.title("Comprobador de atributos alt y title en imágenes")
     base_url = st.text_input("Introduce la URL del sitio web:")
     site_number = st.text_input("Introduce el número del site (directorio):", "1303")
@@ -94,6 +119,8 @@ def run():
         # Inicializar URLs a visitar si el análisis es nuevo
         if not st.session_state['urls_to_visit']:
             st.session_state['urls_to_visit'] = [(base_url, 0)]
+
+    # Resto del análisis...
 
     # Verificar si hay URLs para procesar
     if st.session_state['urls_to_visit']:
