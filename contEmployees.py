@@ -13,15 +13,23 @@ def process_files(uploaded_files):
         for line in lines:
             # Buscar líneas con formato "Nombre empleado: X días"
             if ": " in line and "días" in line:
-                name, days = line.split(":")
-                days = int(days.strip().replace(" días", ""))
-                employee_totals[name.strip()] += days
+                try:
+                    name, days = line.split(":")
+                    days = int(days.strip().replace(" días", ""))
+                    employee_totals[name.strip()] += days
+                except ValueError:
+                    # Saltar líneas mal formateadas
+                    continue
 
     return employee_totals
 
 
 def plot_results(employee_totals):
     """Mostrar un gráfico de barras de los resultados con manejo de valores 0."""
+    if not employee_totals:
+        st.warning("No se encontraron datos válidos en los archivos subidos.")
+        return
+
     # Ordenar los empleados por número de días (de mayor a menor)
     sorted_totals = sorted(employee_totals.items(), key=lambda x: x[1], reverse=True)
     names, days = zip(*sorted_totals)
@@ -81,20 +89,21 @@ def main():
         # Procesar archivos
         totals = process_files(uploaded_files)
 
-        # Ordenar los resultados de mayor a menor
-        sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+        if totals:
+            # Generar archivo de salida
+            sorted_totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+            result_text = "\n".join(f"{name}: {days} días" for name, days in sorted_totals)
+            st.download_button(
+                label="Descargar resultados",
+                data=result_text,
+                file_name="totales_empleados.txt",
+                mime="text/plain"
+            )
 
-        # Generar archivo de salida
-        result_text = "\n".join(f"{name}: {days} días" for name, days in sorted_totals)
-        st.download_button(
-            label="Descargar resultados",
-            data=result_text,
-            file_name="totales_empleados.txt",
-            mime="text/plain"
-        )
-
-        # Mostrar solo el gráfico de barras
-        plot_results(totals)
+            # Mostrar solo el gráfico de barras
+            plot_results(totals)
+        else:
+            st.error("Los archivos cargados no contienen datos válidos. Verifica el formato e inténtalo nuevamente.")
 
 
 if __name__ == "__main__":
