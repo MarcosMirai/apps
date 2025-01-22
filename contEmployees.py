@@ -62,7 +62,7 @@ def main():
         """
         ### Primer Paso: Descargar y Ejecutar el Script
         Para comenzar, descarga el siguiente archivo JavaScript y ejecútalo en la consola de tu navegador para exportar los datos:
-        - [Descargar Script JS](https://github.com/MarcosMirai/apps/blob/main/daysFactorial.js)
+        - [Descargar Script JS](https://gist.github.com/MarcosMirai/2e378fdd64eb781843c9160ab5daca31)
 
         **Instrucciones:**
         1. Abre la consola de tu navegador (F12 o clic derecho -> Inspeccionar -> Consola).
