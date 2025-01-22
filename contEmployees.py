@@ -21,7 +21,7 @@ def process_files(uploaded_files):
 
 
 def plot_results(employee_totals):
-    """Mostrar un gráfico de barras de los resultados con márgenes optimizados."""
+    """Mostrar un gráfico de barras de los resultados con manejo de valores 0."""
     # Ordenar los empleados por número de días (de mayor a menor)
     sorted_totals = sorted(employee_totals.items(), key=lambda x: x[1], reverse=True)
     names, days = zip(*sorted_totals)
@@ -42,8 +42,14 @@ def plot_results(employee_totals):
 
     # Añadir los números de días sobre las barras
     for bar, day in zip(bars, days):
-        ax.text(bar.get_width() - 0.5, bar.get_y() + bar.get_height() / 2, f'{day}',
-                va='center', ha='right', color='black', fontweight='bold')
+        if day == 0:
+            # Para valores 0, mostrar el texto al inicio de la barra
+            ax.text(0.5, bar.get_y() + bar.get_height() / 2, f'{day}',
+                    va='center', ha='left', color='black', fontweight='bold')
+        else:
+            # Para valores mayores a 0, mostrar el texto al final de la barra
+            ax.text(bar.get_width() - 0.5, bar.get_y() + bar.get_height() / 2, f'{day}',
+                    va='center', ha='right', color='black', fontweight='bold')
 
     st.pyplot(fig)
 
